@@ -88,6 +88,7 @@ jobs:
         run: ls -R
       - name: Run Integration Tests
         run: |
+          export APP_PORT=5000
           source /home/joseubuntu/pyenv/bin/activate
           python -m pytest test/integration -v
     environment: develop
@@ -115,6 +116,7 @@ jobs:
 
       - name: Run Integration Tests in Prod
         run: |
+          export APP_PORT=5001
           source /home/joseubuntu/pyenv/bin/activate
           python -m pytest test/integration -v
     environment: production
