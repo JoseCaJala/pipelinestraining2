@@ -118,7 +118,7 @@ jobs:
     environment: develop
 
   deploy-to-prod:
-    needs: deploy-to-dev
+    needs: [deploy-to-dev, build-and-push]
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v3
