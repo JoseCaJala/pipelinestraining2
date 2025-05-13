@@ -11,14 +11,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
+
       - name: Install dependencies
         run: pip install -r requirements.txt flake8 pytest
+
       - name: Lint
         run: flake8 restApp/
+
       - name: Run Unit Tests
         run: python -m pytest test/unit -v
     environment: develop
@@ -26,10 +30,16 @@ jobs:
   build-and-push:
     needs: static-codecheck
     runs-on: ubuntu-latest
+
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+
     steps:
       - uses: actions/checkout@v3
+
       - name: Log in to DockerHub
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+
       - name: Set image tag
         id: tag
         run: |
@@ -37,10 +47,13 @@ jobs:
           IMAGE_TAG="${BRANCH}-1.0.0-${GITHUB_RUN_NUMBER}"
           echo "IMAGE_TAG=$IMAGE_TAG"
           echo "tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+
       - name: Build Image
         run: docker build -t josedocker14/restapp:${{ steps.tag.outputs.tag }} .
+
       - name: Push Image
         run: docker push josedocker14/restapp:${{ steps.tag.outputs.tag }}
+
       - name: List Docker Images
         run: docker images
     environment: develop
@@ -48,16 +61,19 @@ jobs:
   deploy-to-dev:
     needs: build-and-push
     runs-on: self-hosted
-    outputs:
-      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - name: Deploy Redis Container
         run: |
           docker stop redisService || true
           docker rm redisService || true
           docker run --name redisService -p 6379:6379 -d redis:alpine
+
+      - name: Pull latest restapp image
+        run: docker pull josedocker14/restapp:${{ needs.build-and-push.outputs.tag }}
+
       - name: Check if restapp image exists
         run: docker images | grep josedocker14/restapp || echo "restapp image not found"
+
       - name: Deploy restapp Container
         run: |
           redisIP=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' redisService)
@@ -68,7 +84,7 @@ jobs:
 
       - name: Run Integration Tests
         run: python -m pytest test/integration -v
-    environment: develop 
+    environment: develop
 
   deploy-to-prod:
     needs: deploy-to-dev
@@ -79,14 +95,17 @@ jobs:
           docker stop redisService || true
           docker rm redisService || true
           docker run --name redisService -p 6380:6379 -d redis:alpine
+
+      - name: Pull latest restapp image
+        run: docker pull josedocker14/restapp:${{ needs.build-and-push.outputs.tag }}
+
       - name: Deploy restapp Container in Prod
         run: |
           redisIP=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' redisService)
           docker stop restapp || true
           docker rm restapp || true
-          docker run --name restapp --add-host redis:$redisIP -p 5001:5000 -d josedocker14/restapp:${{ needs.build-and-push.outputs.tag }}  # Aquí cambiamos myuser a josedocker14
+          docker run --name restapp --add-host redis:$redisIP -p 5001:5000 -d josedocker14/restapp:${{ needs.build-and-push.outputs.tag }}
+
       - name: Run Integration Tests in Prod
         run: python -m pytest test/integration -v
     environment: production
-
-
