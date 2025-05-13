@@ -81,15 +81,10 @@ jobs:
           docker rm restapp || true
           docker run --name restapp --add-host redis:$redisIP -p 5000:5000 -d josedocker14/restapp:${{ needs.build-and-push.outputs.tag }}
         shell: /usr/bin/bash -e {0}
-  
-      - name: Install Python and pytest
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y python3 python3-pip
-          pip3 install pytest
-  
       - name: Run Integration Tests
-        run: python3 -m pytest test/integration -v
+        run: |
+          source /home/joseubuntu/pyenv/bin/activate
+          python -m pytest test/integration -v
     environment: develop
 
   deploy-to-prod:
