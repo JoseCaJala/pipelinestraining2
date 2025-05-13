@@ -78,3 +78,6 @@ jobs:
       - name: Run Integration Tests in Prod
         run: python -m pytest test/integration -v
     environment: production
+
+         <!-- Trigger build -->
+
