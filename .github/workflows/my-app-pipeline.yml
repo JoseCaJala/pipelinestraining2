@@ -3,8 +3,8 @@ name: CI/CD Pipeline
 on:
   push:
     branches:
-      - nameLastname_p2_dev
-      - nameLastname_p2_base
+      - joseCatro_p2_dev
+      - joseCastro_p2_base
 
 jobs:
   static-codecheck:
