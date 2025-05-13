@@ -1,55 +1,80 @@
-name: CI
+name: CI/CD Pipeline
 
 on:
-  # push:
-  #   branches: [ "develop", "main" ]
-  # pull_request:
-  #   branches: [ "develop", "main" ]
-
-  workflow_dispatch:
-
-env: 
-  SEM_VERSION: ""
-  IMAGE_NAME:  ""
+  push:
+    branches:
+      - nameLastname_p2_dev
+      - nameLastname_p2_base
 
 jobs:
-  ## 🔧 1. 
-  Static-codecheck:
+  static-codecheck:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: pip install -r requirements.txt flake8 pytest
+      - name: Lint
+        run: flake8 restApp/
+      - name: Run Unit Tests
+        run: python -m pytest test/unit -v
+    environment: develop
 
-  ## 🔧 2. 
-  Build:
+  build-and-push:
+    needs: static-codecheck
     runs-on: ubuntu-latest
-    needs: Static-codecheck
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+      - name: Log in to DockerHub
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+      - name: Set image tag
+        id: tag
+        run: |
+          BRANCH=$(echo "${GITHUB_REF##*/}" | tr '/' '-')
+          echo "tag=${BRANCH}-1.0.0+${GITHUB_RUN_NUMBER}" >> $GITHUB_OUTPUT
+      - name: Build Image
+        run: docker build -t myuser/restapp:${{ steps.tag.outputs.tag }} .
+      - name: Push Image
+        run: docker push myuser/restapp:${{ steps.tag.outputs.tag }}
+    environment: develop
 
-  ## 🚀 3. 
-  deploy-dev:
-    runs-on: ubuntu-latest
-    needs: Build
-    environment:
-      name: Develop
-      url: http://localhost:5000
-
+  deploy-to-dev:
+    needs: build-and-push
+    runs-on: self-hosted
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Deploy Redis Container
+        run: |
+          docker stop redisService || true
+          docker rm redisService || true
+          docker run --name redisService -p 6379:6379 -d redis:alpine
+      - name: Deploy restapp Container
+        run: |
+          redisIP=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' redisService)
+          docker stop restapp || true
+          docker rm restapp || true
+          docker run --name restapp --add-host redis:$redisIP -p 5000:5000 -d myuser/restapp:${{ needs.build-and-push.outputs.tag }}
+      - name: Run Integration Tests
+        run: python -m pytest test/integration -v
+    environment: develop 
 
-  ## 🚀 4. 
-  deploy-prod:
-    runs-on: ubuntu-latest
-    needs: deploy-dev
-    environment:
-      name: Production
-      url: http://localhost:5000
-
+  deploy-to-prod:
+    needs: deploy-to-dev
+    runs-on: self-hosted
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Deploy Redis Container in Prod
+        run: |
+          docker stop redisService || true
+          docker rm redisService || true
+          docker run --name redisService -p 6380:6379 -d redis:alpine
+      - name: Deploy restapp Container in Prod
+        run: |
+          redisIP=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' redisService)
+          docker stop restapp || true
+          docker rm restapp || true
+          docker run --name restapp --add-host redis:$redisIP -p 5001:5000 -d myuser/restapp:${{ needs.build-and-push.outputs.tag }}
+      - name: Run Integration Tests in Prod
+        run: python -m pytest test/integration -v
+    environment: production
