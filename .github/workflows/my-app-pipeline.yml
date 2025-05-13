@@ -124,9 +124,9 @@ jobs:
       - uses: actions/checkout@v3
       - name: Deploy Redis Container in Prod
         run: |
-          docker stop redisService || true
-          docker rm redisService || true
-          docker run --name redisService -p 6380:6379 -d redis:alpine
+          docker stop redisServiceProd || true
+          docker rm redisServiceProd || true
+          docker run --name redisServiceProd -p 6380:6379 -d redis:alpine
 
       - name: Pull latest restapp image
         run: docker pull josedocker14/restapp:${{ needs.build-and-push.outputs.tag }}
