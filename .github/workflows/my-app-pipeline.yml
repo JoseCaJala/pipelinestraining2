@@ -39,6 +39,8 @@ jobs:
         run: docker build -t josedocker14/restapp:${{ steps.tag.outputs.tag }} .
       - name: Push Image
         run: docker push josedocker14/restapp:${{ steps.tag.outputs.tag }}
+      - name: List Docker Images
+        run: docker images
     environment: develop
 
   deploy-to-dev:
@@ -50,6 +52,8 @@ jobs:
           docker stop redisService || true
           docker rm redisService || true
           docker run --name redisService -p 6379:6379 -d redis:alpine
+      - name: Check if restapp image exists
+        run: docker images | grep josedocker14/restapp || echo "restapp image not found"
       - name: Deploy restapp Container
         run: |
           redisIP=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' redisService)
