@@ -84,7 +84,7 @@ jobs:
       - name: Run Integration Tests
         run: |
           source /home/joseubuntu/pyenv/bin/activate
-          python -m pytest test/integration -v
+          python -m pytest test/ -v
     environment: develop
 
   deploy-to-prod:
