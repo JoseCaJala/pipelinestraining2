@@ -41,7 +41,7 @@ jobs:
         run: docker push josedocker14/restapp:${{ steps.tag.outputs.tag }}
     environment: develop
 
-    deploy-to-dev:
+  deploy-to-dev:
     needs: build-and-push
     runs-on: self-hosted
     steps:
@@ -78,7 +78,5 @@ jobs:
       - name: Run Integration Tests in Prod
         run: python -m pytest test/integration -v
     environment: production
-
-      <!-- Trigger build -->
 
 
