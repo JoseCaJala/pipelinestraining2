@@ -82,6 +82,8 @@ jobs:
           docker rm restapp || true
           docker run --name restapp --add-host redis:$redisIP -p 5000:5000 -d josedocker14/restapp:${{ needs.build-and-push.outputs.tag }}
         shell: /usr/bin/bash -e {0}
+      - name: List directory contents
+        run: ls -R
       - name: Run Integration Tests
         run: |
           source /home/joseubuntu/pyenv/bin/activate
