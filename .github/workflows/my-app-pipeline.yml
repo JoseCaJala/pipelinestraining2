@@ -60,38 +60,62 @@ jobs:
     environment: develop
 
   deploy-to-dev:
-    needs: build-and-push
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v3
+  needs: build-and-push
+  runs-on: self-hosted
+  steps:
+    - uses: actions/checkout@v3
 
-      - name: Deploy Redis Container
-        run: |
-          docker stop redisService || true
-          docker rm redisService || true
-          docker run --name redisService -p 6379:6379 -d redis:alpine
-  
-      - name: Pull latest restapp image
-        run: docker pull josedocker14/restapp:${{ needs.build-and-push.outputs.tag }}
-  
-      - name: Check if restapp image exists
-        run: docker images | grep josedocker14/restapp || echo "restapp image not found"
-  
-      - name: Deploy restapp Container
-        run: |
-          redisIP=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' redisService)
-          docker stop restapp || true
-          docker rm restapp || true
-          docker run --name restapp --add-host redis:$redisIP -p 5000:5000 -d josedocker14/restapp:${{ needs.build-and-push.outputs.tag }}
-        shell: /usr/bin/bash -e {0}
-      - name: List directory contents
-        run: ls -R
-      - name: Run Integration Tests
-        run: |
-          export APP_PORT=5000
-          source /home/joseubuntu/pyenv/bin/activate
-          python -m pytest test/integration -v
-    environment: develop
+    - name: Deploy Redis Container
+      run: |
+        docker stop redisService || true
+        docker rm redisService || true
+        docker run --name redisService -p 6379:6379 -d redis:alpine
+        # Verificar que Redis está corriendo
+        docker ps | grep redisService
+
+    - name: Pull latest restapp image
+      run: docker pull josedocker14/restapp:${{ needs.build-and-push.outputs.tag }}
+
+    - name: Check if restapp image exists
+      run: docker images | grep josedocker14/restapp || echo "restapp image not found"
+
+    - name: Deploy restapp Container
+      run: |
+        redisIP=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' redisService)
+        echo "Redis IP: $redisIP"
+        docker stop restapp || true
+        docker rm restapp || true
+        docker run --name restapp --add-host redis:$redisIP -p 5000:5000 -d josedocker14/restapp:${{ needs.build-and-push.outputs.tag }}
+        
+        # Esperar a que la aplicación esté disponible
+        echo "Esperando a que la aplicación esté disponible..."
+        sleep 5
+        
+        # Verificar que el contenedor está corriendo
+        docker ps | grep restapp
+      shell: /usr/bin/bash -e {0}
+    
+    - name: Check container logs
+      run: |
+        echo "Container logs:"
+        docker logs restapp
+        
+        # Verificar que la aplicación está respondiendo
+        echo "Verificando conexión a la aplicación..."
+        curl -v http://localhost:5000/ || echo "No se pudo conectar a la aplicación"
+    
+    - name: List directory contents
+      run: ls -R
+    
+    - name: Run Integration Tests
+      run: |
+        export APP_PORT=5000
+        # Asegurarse de que la variable BASE_URL esté configurada
+        export BASE_URL="http://localhost:$APP_PORT"
+        source /home/joseubuntu/pyenv/bin/activate
+        echo "Running tests using $BASE_URL"
+        python -m pytest test/integration -v
+  environment: develop
 
   deploy-to-prod:
     needs: deploy-to-dev
