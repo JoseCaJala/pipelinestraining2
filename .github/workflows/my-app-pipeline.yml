@@ -18,7 +18,8 @@ jobs:
           python-version: '3.10'
 
       - name: Install dependencies
-        run: pip install -r requirements.txt flake8 pytest
+        run: |
+          pip install -r requirements.txt flake8 pytest
 
       - name: Lint
         run: flake8 restApp/
@@ -58,7 +59,7 @@ jobs:
         run: docker images
     environment: develop
 
-   deploy-to-dev:
+  deploy-to-dev:
     needs: build-and-push
     runs-on: self-hosted
     steps:
