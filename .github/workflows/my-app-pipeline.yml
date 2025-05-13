@@ -58,7 +58,7 @@ jobs:
         run: docker images
     environment: develop
 
-  deploy-to-dev:
+   deploy-to-dev:
     needs: build-and-push
     runs-on: self-hosted
     steps:
@@ -84,7 +84,7 @@ jobs:
       - name: Run Integration Tests
         run: |
           source /home/joseubuntu/pyenv/bin/activate
-          python -m pytest test/ -v
+          python -m pytest test/integration -v
     environment: develop
 
   deploy-to-prod:
@@ -108,5 +108,7 @@ jobs:
           docker run --name restapp --add-host redis:$redisIP -p 5001:5000 -d josedocker14/restapp:${{ needs.build-and-push.outputs.tag }}
 
       - name: Run Integration Tests in Prod
-        run: python -m pytest test/integration -v
+        run: |
+          source /home/joseubuntu/pyenv/bin/activate
+          python -m pytest test/integration -v
     environment: production
