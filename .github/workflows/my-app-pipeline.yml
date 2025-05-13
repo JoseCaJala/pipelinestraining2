@@ -134,8 +134,8 @@ jobs:
       - name: Deploy restapp Container in Prod
         run: |
           redisIP=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' redisServiceProd)
-          docker stop restapp || true
-          docker rm restapp || true
+          docker stop restappProd || true
+          docker rm restappProd || true
           docker run --name restappProd --add-host redis:$redisIP -p 5001:5000 -d josedocker14/restapp:${{ needs.build-and-push.outputs.tag }}
 
       - name: Run Integration Tests in Prod
