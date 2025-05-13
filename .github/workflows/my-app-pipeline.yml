@@ -3,7 +3,7 @@ name: CI/CD Pipeline
 on:
   push:
     branches:
-      - joseCatro_p2_dev
+      - joseCastro_p2_dev
       - joseCastro_p2_base
 
 jobs:
