@@ -34,7 +34,9 @@ jobs:
         id: tag
         run: |
           BRANCH=$(echo "${GITHUB_REF##*/}" | tr '/' '-')
-          echo "tag=${BRANCH}-1.0.0-${GITHUB_RUN_NUMBER}" >> $GITHUB_OUTPUT
+          IMAGE_TAG="${BRANCH}-1.0.0-${GITHUB_RUN_NUMBER}"
+          echo "IMAGE_TAG=$IMAGE_TAG"
+          echo "tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
       - name: Build Image
         run: docker build -t josedocker14/restapp:${{ steps.tag.outputs.tag }} .
       - name: Push Image
@@ -46,6 +48,8 @@ jobs:
   deploy-to-dev:
     needs: build-and-push
     runs-on: self-hosted
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - name: Deploy Redis Container
         run: |
