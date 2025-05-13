@@ -34,7 +34,7 @@ jobs:
         id: tag
         run: |
           BRANCH=$(echo "${GITHUB_REF##*/}" | tr '/' '-')
-          echo "tag=${BRANCH}-1.0.0+${GITHUB_RUN_NUMBER}" >> $GITHUB_OUTPUT
+          echo "tag=${BRANCH}-1.0.0-${GITHUB_RUN_NUMBER}" >> $GITHUB_OUTPUT
       - name: Build Image
         run: docker build -t myuser/restapp:${{ steps.tag.outputs.tag }} .
       - name: Push Image
