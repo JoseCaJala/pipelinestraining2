@@ -114,9 +114,22 @@ jobs:
 
           docker run --rm \
             --add-host "restapp:$restappIp" \
-            -v ${{ github.workspace }}/tests/postman:/etc/newman \
+            -v ${{ github.workspace }}/utils/tests/postman:/etc/newman \
             postman/newman run collectionRestAppTest.json \
             --environment env.json
+
+      - name: Clean up old Docker containers and images
+        run: |
+          echo "Removing stopped containers..."
+          docker container prune -f
+
+          echo "Removing dangling images..."
+          docker image prune -f
+
+          echo "Optionally, remove old restapp images (keeping latest)..."
+          docker images --filter=reference='josedocker14/restapp' --format "{{.Repository}}:{{.Tag}}" | \
+            grep -v "${{ needs.build-and-push.outputs.tag }}" | \
+            xargs -r docker rmi
     environment: develop
 
   deploy-to-prod:
@@ -146,4 +159,17 @@ jobs:
           export APP_PORT=5001
           source /home/joseubuntu/pyenv/bin/activate
           python -m pytest test/integration -v
+
+      - name: Clean up old Docker containers and images
+        run: |
+          echo "Removing stopped containers..."
+          docker container prune -f
+
+          echo "Removing dangling images..."
+          docker image prune -f
+
+          echo "Optionally, remove old restapp images (keeping latest)..."
+          docker images --filter=reference='josedocker14/restapp' --format "{{.Repository}}:{{.Tag}}" | \
+            grep -v "${{ needs.build-and-push.outputs.tag }}" | \
+            xargs -r docker rmi
     environment: production
