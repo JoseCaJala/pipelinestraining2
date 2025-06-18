@@ -114,7 +114,6 @@ jobs:
       - name: Run Integration Tests with Newman
         run: |
           restappIp=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' restapp)
-          echo "restapp IP: $restappIp"
 
           docker run --rm \
             --add-host "restapp:$restappIp" \
