@@ -121,6 +121,15 @@ jobs:
             postman/newman run collectionRestAppTest.json \
             --environment env.json
 
+      - name: Run Load Test with Artillery
+        run: |
+          restappIp=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' restapp)
+          docker run --rm \
+            --add-host "restapp:$restappIp" \
+            -v ${{ github.workspace }}/utils/tests/artillery:/app \
+            -w /app \
+            artilleryio/artillery run loadTest.yml
+
       - name: Clean up old Docker containers and images
         run: |
           echo "Removing stopped containers..."
